@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WanderGrid — Interactive City Explorer & Travel Dashboard</title>
+  <title>Travel Dashboard — Interactive City Explorer</title>
 
   <!-- Google Fonts: Playfair Display (Editorial Headings) & Inter (Clean UI) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -92,7 +92,7 @@
         <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
           <i data-lucide="compass" class="w-5 h-5"></i>
         </div>
-        <span class="font-serif text-xl font-bold tracking-tight">WanderGrid</span>
+        <span class="font-serif text-xl font-bold tracking-tight">Travel Dashboard</span>
       </div>
       <button id="mobile-menu-btn" aria-label="Toggle Menu" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
         <i data-lucide="menu" class="w-5 h-5"></i>
@@ -112,7 +112,7 @@
               <i data-lucide="globe" class="w-5 h-5"></i>
             </div>
             <div>
-              <h1 class="font-serif text-xl font-bold tracking-tight text-white leading-none">WanderGrid</h1>
+              <h1 class="font-serif text-xl font-bold tracking-tight text-white leading-none">Travel Dashboard</h1>
               <p class="text-xs text-slate-400 mt-1">Global City Explorer</p>
             </div>
           </div>
@@ -379,9 +379,9 @@
       <footer class="bg-white border-t border-slate-200/80 px-4 sm:px-8 py-6 mt-8">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div class="flex items-center gap-2">
-            <span class="font-serif font-bold text-slate-800 text-sm">WanderGrid</span>
+            <span class="font-serif font-bold text-slate-800 text-sm">Travel Dashboard</span>
             <span>•</span>
-            <span>Upgraded Interactive Travel & City Dashboard</span>
+            <span>Interactive City Explorer & Live Telemetry</span>
           </div>
           <div class="flex items-center gap-4">
             <span>Weather: Open-Meteo API</span>
@@ -559,7 +559,7 @@
             name: 'The British Museum',
             category: 'Art & History',
             coords: [51.5194, -0.1270],
-            image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80',
             tip: 'General admission is free—reserve a timed entry slot online and head straight to the Rosetta Stone.'
           }
         ]
@@ -892,7 +892,7 @@
      * 2. APPLICATION STATE & STORAGE
      */
     const STORAGE_KEYS = {
-      CITIES: 'wandergrid_cities_v2',
+      CITIES: 'wandergrid_cities_v3',
       VISITED: 'wandergrid_visited_v1',
       ACTIVE_CITY: 'wandergrid_active_city_v1'
     };
