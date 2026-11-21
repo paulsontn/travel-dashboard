@@ -850,6 +850,104 @@
             tip: 'Join locals at Arpoador rock at dusk where crowds applaud as the sun dips behind Dois Irmãos peaks.'
           }
         ]
+      },
+      {
+        id: 'kerala',
+        name: 'Kerala',
+        country: 'India',
+        region: 'South India',
+        tagline: 'God’s Own Country — Backwaters & Misty Hills',
+        timezone: 'Asia/Kolkata',
+        currency: 'INR',
+        currencySymbol: '₹',
+        language: 'Malayalam, English',
+        bestTime: 'September – March',
+        coords: [9.4981, 76.3388],
+        heroImage: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1600&q=80',
+        description: 'Known globally as "God’s Own Country," Kerala is a lush tropical paradise along India’s Malabar Coast. Celebrated for its tranquil palm-fringed backwaters, emerald tea plantations in the Western Ghats, classical Kathakali dance, and ancient Ayurvedic wellness traditions, Kerala blends serene nature with rich cultural heritage.',
+        landmarks: [
+          {
+            id: 'ker-alleppey',
+            name: 'Alleppey Backwaters & Houseboats',
+            category: 'Backwater Cruise',
+            coords: [9.4981, 76.3388],
+            image: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80',
+            tip: 'Book an overnight kettuvallam houseboat or take a sunrise shikara canoe ride through narrow village canals.'
+          },
+          {
+            id: 'ker-munnar',
+            name: 'Munnar Tea Plantations',
+            category: 'Hill Station',
+            coords: [10.0889, 77.0595],
+            image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800&q=80',
+            tip: 'Visit Kolukkumalai Tea Estate at dawn to watch clouds roll below the world’s highest organic tea gardens.'
+          },
+          {
+            id: 'ker-fortkochi',
+            name: 'Fort Kochi & Chinese Fishing Nets',
+            category: 'Coastal Heritage',
+            coords: [9.9658, 76.2421],
+            image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80',
+            tip: 'Stroll along Princess Street at sunset to watch fishermen haul cantilevered nets and sample fresh seafood.'
+          },
+          {
+            id: 'ker-athirappilly',
+            name: 'Athirappilly Waterfalls',
+            category: 'Natural Wonder',
+            coords: [10.2851, 76.5698],
+            image: 'https://images.unsplash.com/photo-1623067980333-1929f0206f4e?auto=format&fit=crop&w=800&q=80',
+            tip: 'Often called the "Niagara of India," hike down to the base viewpoint just after monsoon season for peak flow.'
+          }
+        ]
+      },
+      {
+        id: 'kanyakumari',
+        name: 'Kanyakumari',
+        country: 'India',
+        region: 'South India',
+        tagline: 'Land’s End — Where Three Seas Meet',
+        timezone: 'Asia/Kolkata',
+        currency: 'INR',
+        currencySymbol: '₹',
+        language: 'Tamil, Malayalam, English',
+        bestTime: 'October – March',
+        coords: [8.0883, 77.5385],
+        heroImage: 'https://images.unsplash.com/photo-1621996659490-3275b4d0d951?auto=format&fit=crop&w=1600&q=80',
+        description: 'Situated at the southernmost tip of mainland India, Kanyakumari is the sacred confluence where the Arabian Sea, the Bay of Bengal, and the Indian Ocean merge. Famous for witnessing both sunrise and sunset over the ocean horizon, rocky island memorials, and historic Travancore palaces, it is one of India’s most captivating coastal destinations.',
+        landmarks: [
+          {
+            id: 'kny-vivekananda',
+            name: 'Vivekananda Rock Memorial',
+            category: 'Island Monument',
+            coords: [8.0781, 77.5554],
+            image: 'https://images.unsplash.com/photo-1621996659490-3275b4d0d951?auto=format&fit=crop&w=800&q=80',
+            tip: 'Catch the early morning ferry across the waves and spend quiet moments inside the Dhyana Mandapam meditation hall.'
+          },
+          {
+            id: 'kny-thiruvalluvar',
+            name: 'Thiruvalluvar Statue',
+            category: 'Iconic Sculpture',
+            coords: [8.0778, 77.5540],
+            image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80',
+            tip: 'Standing 133 feet tall to symbolize the 133 chapters of the Thirukkural, it looks dramatic bathed in golden sunrise light.'
+          },
+          {
+            id: 'kny-padmanabhapuram',
+            name: 'Padmanabhapuram Palace',
+            category: 'Royal Wooden Palace',
+            coords: [8.2508, 77.3267],
+            image: 'https://images.unsplash.com/photo-1600100397608-f010f423b971?auto=format&fit=crop&w=800&q=80',
+            tip: 'Explore the intricate rosewood ceilings, Belgian mirrors, and cool polished floors of Asia’s largest wooden palace.'
+          },
+          {
+            id: 'kny-mathur',
+            name: 'Mathur Aqueduct (Hanging Trough)',
+            category: 'Engineering Marvel',
+            coords: [8.3358, 77.2947],
+            image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80',
+            tip: 'Walk across this towering 115-foot-high aqueduct spanning the Pahrali River for lush views of the Western Ghats.'
+          }
+        ]
       }
     ];
 
@@ -892,7 +990,7 @@
      * 2. APPLICATION STATE & STORAGE
      */
     const STORAGE_KEYS = {
-      CITIES: 'wandergrid_cities_v4',
+      CITIES: 'wandergrid_cities_v5',
       VISITED: 'wandergrid_visited_v1',
       ACTIVE_CITY: 'wandergrid_active_city_v1'
     };
@@ -1317,15 +1415,24 @@
     }
 
     function updateMapForCity(city) {
-      if (!state.map) return;
+      if (!state.map || !city) return;
       state.markersLayer.clearLayers();
       state.landmarkMarkers = {};
 
-      state.map.flyTo(city.coords, 12, { duration: 1.2 });
+      const lat = Array.isArray(city.coords) ? Number(city.coords[0]) : NaN;
+      const lng = Array.isArray(city.coords) ? Number(city.coords[1]) : NaN;
+      const validCoords = Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : [51.5072, -0.1276];
+
+      state.map.invalidateSize();
+      state.map.setView(validCoords, 12);
 
       city.landmarks.forEach(landmark => {
-        if (!landmark.coords) return;
-        const marker = L.marker(landmark.coords).addTo(state.markersLayer);
+        if (!Array.isArray(landmark.coords)) return;
+        const lmLat = Number(landmark.coords[0]);
+        const lmLng = Number(landmark.coords[1]);
+        if (!Number.isFinite(lmLat) || !Number.isFinite(lmLng)) return;
+
+        const marker = L.marker([lmLat, lmLng]).addTo(state.markersLayer);
         marker.bindPopup(`
           <div style="font-family: Inter, sans-serif; min-width: 160px;">
             <strong style="font-size: 13px; color: #0f172a;">${escapeHTML(landmark.name)}</strong>
@@ -1344,10 +1451,15 @@
 
       document.getElementById('map-section').scrollIntoView({ behavior: 'smooth' });
 
-      if (landmark && landmark.coords && state.map) {
-        state.map.flyTo(landmark.coords, 15, { duration: 1.2 });
-        if (marker) {
-          setTimeout(() => marker.openPopup(), 600);
+      if (landmark && Array.isArray(landmark.coords) && state.map) {
+        const lmLat = Number(landmark.coords[0]);
+        const lmLng = Number(landmark.coords[1]);
+        if (Number.isFinite(lmLat) && Number.isFinite(lmLng)) {
+          state.map.invalidateSize();
+          state.map.flyTo([lmLat, lmLng], 15, { duration: 1.2 });
+          if (marker) {
+            setTimeout(() => marker.openPopup(), 600);
+          }
         }
       }
     }
