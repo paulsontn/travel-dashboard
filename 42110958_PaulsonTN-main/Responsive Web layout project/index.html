@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WanderGrid — Interactive City Explorer & Travel Dashboard</title>
+
+  <!-- Google Fonts: Playfair Display (Editorial Headings) & Inter (Clean UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet.js CSS & JS for Interactive City Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+          },
+          colors: {
+            slateDark: '#0F172A',
+            slateCard: '#1E293B',
+            canvas: '#F8FAFC',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Smooth Scroll & Subtle Transitions */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Fallback hero gradient if external image fails to load */
+    .hero-fallback {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    }
+
+    /* Landmark Card Image Zoom Transition */
+    .landmark-img {
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .landmark-card:hover .landmark-img {
+      transform: scale(1.06);
+    }
+
+    /* Ensure Leaflet map stays below sticky modals/headers */
+    .leaflet-container {
+      z-index: 10;
+      border-radius: 0.75rem;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Custom Scrollbar for Sidebar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-canvas text-slate-800 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- App Shell: Responsive Sidebar + Main Content Area -->
+  <div class="min-h-screen flex flex-col lg:flex-row">
+
+    <!-- Mobile Top Bar -->
+    <header class="lg:hidden bg-slateDark text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+          <i data-lucide="compass" class="w-5 h-5"></i>
+        </div>
+        <span class="font-serif text-xl font-bold tracking-tight">WanderGrid</span>
+      </div>
+      <button id="mobile-menu-btn" aria-label="Toggle Menu" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+    </header>
+
+    <!-- Mobile Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
+
+    <!-- Left Navigation Sidebar (Replaces old .grid-item2) -->
+    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 h-screen w-72 bg-slateDark text-slate-100 flex flex-col justify-between p-5 transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-xl lg:shadow-none shrink-0">
+      <div>
+        <!-- Brand Header -->
+        <div class="flex items-center justify-between mb-8 pb-5 border-b border-slate-800">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
+              <i data-lucide="globe" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h1 class="font-serif text-xl font-bold tracking-tight text-white leading-none">WanderGrid</h1>
+              <p class="text-xs text-slate-400 mt-1">Global City Explorer</p>
+            </div>
+          </div>
+          <button id="close-sidebar-btn" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Overall Bucket List Progress Card -->
+        <div class="bg-slateCard/90 border border-slate-700/60 rounded-xl p-4 mb-6">
+          <div class="flex items-center justify-between text-xs font-medium mb-2">
+            <span class="text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+              Bucket List Progress
+            </span>
+            <span id="global-progress-text" class="text-emerald-400 font-semibold">0 / 0</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="global-progress-bar" class="bg-gradient-to-r from-emerald-400 to-teal-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">Check off landmarks as you explore each city.</p>
+        </div>
+
+        <!-- Destinations Navigation List -->
+        <div class="flex items-center justify-between px-2 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Destinations</span>
+          <span id="city-count-badge" class="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">8</span>
+        </div>
+
+        <!-- Search Filter Input -->
+        <div class="relative mb-3">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input
+            type="text"
+            id="city-search-input"
+            placeholder="Filter cities or countries..."
+            class="w-full bg-slate-800/80 border border-slate-700/70 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          >
+        </div>
+
+        <nav id="city-nav-list" class="space-y-1.5 max-h-[36vh] overflow-y-auto pr-1" aria-label="Cities Navigation">
+          <!-- Populated dynamically via JavaScript -->
+        </nav>
+      </div>
+
+      <!-- Bottom Sidebar Actions -->
+      <div class="pt-4 border-t border-slate-800 space-y-2.5">
+        <button id="open-add-city-btn" class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/15 cursor-pointer">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Add Custom City</span>
+        </button>
+        <button id="reset-demo-btn" class="w-full py-2 px-3 rounded-xl bg-slate-800/70 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>Reset Default Data</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Dashboard Content (Replaces old .grid-item1, .grid-item3, .grid-item4) -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- Top Utility Header Bar -->
+      <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-4 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2 text-sm text-slate-500">
+            <span>Destinations</span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+            <span id="breadcrumb-country" class="text-slate-600 font-medium">United Kingdom</span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+            <span id="breadcrumb-city" class="text-slate-900 font-semibold">London</span>
+          </div>
+
+          <!-- Live Local Time Pill -->
+          <div class="flex items-center gap-3 bg-slate-100 border border-slate-200/80 px-3.5 py-1.5 rounded-full">
+            <span id="day-night-icon" class="text-amber-500 flex items-center">
+              <i data-lucide="sun" class="w-4 h-4"></i>
+            </span>
+            <div class="text-xs">
+              <span class="text-slate-500 mr-1">Local Time:</span>
+              <span id="live-clock-time" class="font-mono font-bold text-slate-900">--:--:--</span>
+              <span id="live-clock-date" class="text-slate-500 ml-1.5 hidden sm:inline">---</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="flex-1 px-4 sm:px-8 py-6 sm:py-8">
+        <div class="max-w-6xl mx-auto space-y-8">
+
+          <!-- Hero Banner Section -->
+          <section class="relative rounded-2xl overflow-hidden shadow-lg hero-fallback min-h-[280px] sm:min-h-[340px] flex items-end">
+            <img id="city-hero-img" src="" alt="City Panorama" class="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500" onerror="this.style.opacity='0'">
+            <!-- Dark Gradient Overlay for crisp text readability -->
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent"></div>
+
+            <div class="relative z-10 w-full p-6 sm:p-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div class="max-w-2xl">
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                  <span id="city-region-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-xs">
+                    Western Europe
+                  </span>
+                  <span id="city-tagline-badge" class="px-3 py-1 rounded-full text-xs font-medium bg-white/15 text-slate-200 backdrop-blur-xs">
+                    Historic Capital
+                  </span>
+                </div>
+                <h2 id="city-title" class="font-serif text-4xl sm:text-5xl font-bold text-white tracking-tight">
+                  London
+                </h2>
+                <p id="city-subtitle" class="text-slate-200 text-sm sm:text-base mt-2 leading-relaxed">
+                  United Kingdom • Coords: 51.5072° N, 0.1276° W
+                </p>
+              </div>
+
+              <!-- Quick City Actions -->
+              <div class="flex items-center gap-2.5 shrink-0">
+                <a href="#map-section" class="px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-semibold text-sm flex items-center gap-2 shadow-md transition">
+                  <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600"></i>
+                  <span>Explore Map</span>
+                </a>
+                <button id="delete-city-btn" class="hidden px-3.5 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 font-medium text-sm items-center gap-1.5 transition cursor-pointer" title="Remove custom city">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Live Telemetry & Utility Widgets Grid (Weather, Currency, Quick Facts) -->
+          <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+            <!-- Widget 1: Live Open-Meteo Weather Card -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Weather</span>
+                <span class="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Open-Meteo Live</span>
+              </div>
+              <div id="weather-content" class="flex items-center justify-between my-1">
+                <div>
+                  <div class="flex items-baseline gap-1">
+                    <span id="weather-temp" class="text-3xl font-bold text-slate-900">--°C</span>
+                  </div>
+                  <p id="weather-desc" class="text-sm font-medium text-slate-600 mt-0.5">Fetching forecast...</p>
+                </div>
+                <div id="weather-icon-box" class="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center">
+                  <i data-lucide="cloud-sun" class="w-7 h-7"></i>
+                </div>
+              </div>
+              <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span class="flex items-center gap-1">
+                  <i data-lucide="wind" class="w-3.5 h-3.5 text-slate-400"></i>
+                  Wind: <strong id="weather-wind" class="text-slate-700">-- km/h</strong>
+                </span>
+                <span id="weather-tz-label" class="font-mono text-[11px] text-slate-400">Europe/London</span>
+              </div>
+            </div>
+
+            <!-- Widget 2: Live Currency Converter Card -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Currency Converter</span>
+                <span id="currency-rate-badge" class="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Live Rate</span>
+              </div>
+
+              <div class="space-y-2.5">
+                <div class="flex items-center gap-2">
+                  <select id="base-currency-select" aria-label="Base Currency" class="bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                  </select>
+                  <input id="currency-amount-input" type="number" value="1000" min="0" step="any" aria-label="Amount to convert" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div class="bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200/70 flex items-center justify-between">
+                  <span class="text-xs text-slate-500">Local Equivalent:</span>
+                  <span id="currency-converted-output" class="text-base font-bold text-emerald-700">£--.--</span>
+                </div>
+              </div>
+
+              <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Local Currency: <strong id="local-currency-code" class="text-slate-700">GBP (£)</strong></span>
+                <span id="exchange-rate-text" class="text-[11px] text-slate-400">1 INR = -- GBP</span>
+              </div>
+            </div>
+
+            <!-- Widget 3: City Snapshot & Cultural Facts -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Traveler Snapshot</span>
+                <span class="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Essential Info</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 my-1">
+                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <span class="text-[11px] text-slate-400 block">Language</span>
+                  <span id="city-language" class="text-sm font-semibold text-slate-800">English</span>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <span class="text-[11px] text-slate-400 block">Best Season</span>
+                  <span id="city-best-time" class="text-sm font-semibold text-slate-800">May – Sep</span>
+                </div>
+              </div>
+
+              <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>City Landmarks:</span>
+                <span id="city-landmark-progress" class="font-semibold text-emerald-600">0 / 3 Visited</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- City Overview Article Card -->
+          <section class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+            <div class="flex items-center gap-2 text-emerald-600 text-xs font-bold uppercase tracking-wider mb-2">
+              <i data-lucide="book-open" class="w-4 h-4"></i>
+              <span>City Overview & History</span>
+            </div>
+            <h3 id="overview-heading" class="font-serif text-2xl font-bold text-slate-900 mb-3">
+              Discovering London
+            </h3>
+            <p id="city-description" class="text-slate-600 leading-relaxed text-sm sm:text-base">
+              <!-- Populated dynamically -->
+            </p>
+          </section>
+
+          <!-- Top Landmarks & Bucket List Grid -->
+          <section>
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-5">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Must-See Attractions</span>
+                <h3 class="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-0.5">Iconic Landmarks</h3>
+              </div>
+              <p class="text-xs sm:text-sm text-slate-500">
+                Click <strong>Locate</strong> to fly to the pin on the map, or check off visited spots.
+              </p>
+            </div>
+
+            <div id="landmarks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <!-- Landmark Cards Injected Here -->
+            </div>
+          </section>
+
+          <!-- Interactive Leaflet Map Section -->
+          <section id="map-section" class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Interactive Cartography</span>
+                <h3 class="font-serif text-2xl font-bold text-slate-900 mt-0.5">Landmark Explorer Map</h3>
+              </div>
+              <button id="recenter-map-btn" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                <span>Recenter City</span>
+              </button>
+            </div>
+
+            <!-- Leaflet Map Container -->
+            <div id="city-map" class="w-full h-80 sm:h-96 bg-slate-100 border border-slate-200 rounded-xl"></div>
+          </section>
+
+        </div>
+      </main>
+
+      <!-- Clean Semantic Footer -->
+      <footer class="bg-white border-t border-slate-200/80 px-4 sm:px-8 py-6 mt-8">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div class="flex items-center gap-2">
+            <span class="font-serif font-bold text-slate-800 text-sm">WanderGrid</span>
+            <span>•</span>
+            <span>Upgraded Interactive Travel & City Dashboard</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <span>Weather: Open-Meteo API</span>
+            <span>•</span>
+            <span>Maps: OpenStreetMap & Leaflet</span>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- Add Custom City Modal -->
+  <div id="add-city-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div>
+          <h3 class="font-serif text-2xl font-bold text-slate-900">Add New Destination</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Search any city in the world to auto-fill coordinates & timezone.</p>
+        </div>
+        <button id="close-modal-btn" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Smart Geocoding Auto-Fill Search Bar -->
+      <div class="mt-4 bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3.5">
+        <label class="block text-xs font-bold text-emerald-900 mb-1.5 flex items-center gap-1.5">
+          <i data-lucide="wand-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span>Quick Auto-Fill Any World City</span>
+        </label>
+        <div class="relative">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="geocode-search-input"
+              placeholder="Type a city (e.g., Seoul, Reykjavik, Nairobi)..."
+              class="w-full rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+            <button
+              type="button"
+              id="geocode-search-btn"
+              class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shrink-0 transition cursor-pointer"
+            >
+              Find
+            </button>
+          </div>
+          <!-- Dropdown results -->
+          <div id="geocode-results-list" class="hidden mt-2 bg-white border border-slate-200 rounded-lg shadow-lg divide-y divide-slate-100 max-h-40 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <form id="add-city-form" class="space-y-4 mt-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">City Name *</label>
+            <input type="text" id="new-city-name" required placeholder="e.g., Rome" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Country *</label>
+            <input type="text" id="new-city-country" required placeholder="e.g., Italy" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Currency Code *</label>
+            <select id="new-city-currency" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="JPY">JPY (¥)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="AUD">AUD (A$)</option>
+              <option value="CAD">CAD (C$)</option>
+              <option value="EGP">EGP (E£)</option>
+              <option value="BRL">BRL (R$)</option>
+              <option value="KRW">KRW (₩)</option>
+              <option value="AED">AED (د.إ)</option>
+              <option value="SGD">SGD (S$)</option>
+              <option value="CHF">CHF (Fr)</option>
+              <option value="THB">THB (฿)</option>
+              <option value="ZAR">ZAR (R)</option>
+              <option value="MXN">MXN ($)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Latitude *</label>
+            <input type="number" step="any" id="new-city-lat" required placeholder="41.9028" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Longitude *</label>
+            <input type="number" step="any" id="new-city-lng" required placeholder="12.4964" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">IANA Timezone *</label>
+            <input type="text" id="new-city-tz" required value="Europe/Rome" placeholder="e.g., America/New_York" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Language</label>
+            <input type="text" id="new-city-lang" placeholder="e.g., Italian" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">City Description *</label>
+          <textarea id="new-city-desc" rows="3" required placeholder="Write a compelling summary of what makes this city special..." class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2.5">
+          <span class="block text-xs font-bold text-slate-700">Signature Landmark (Optional)</span>
+          <input type="text" id="new-landmark-name" placeholder="Landmark Name (e.g., Colosseum)" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm bg-white">
+          <input type="text" id="new-landmark-tip" placeholder="Insider tip (e.g., Book early morning tickets to beat crowds)" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm bg-white">
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <button type="button" id="cancel-modal-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 cursor-pointer">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md cursor-pointer">Save Destination</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Banner (Replaces alert()) -->
+  <div id="toast-notification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2.5 text-sm font-medium">
+      <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
+      <span id="toast-message">Action completed!</span>
+    </div>
+  </div>
+
+  <!-- Modular Application Logic -->
+  <script>
+    /**
+     * 1. INITIAL DATA STORE
+     * Replaces the hardcoded, copy-pasted HTML files with structured, accurate city data.
+     */
+    const DEFAULT_CITIES = [
+      {
+        id: 'london',
+        name: 'London',
+        country: 'United Kingdom',
+        region: 'Western Europe',
+        tagline: 'Historic Capital on the Thames',
+        timezone: 'Europe/London',
+        currency: 'GBP',
+        currencySymbol: '£',
+        language: 'English',
+        bestTime: 'May – September',
+        coords: [51.5072, -0.1276],
+        heroImage: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1600&q=80',
+        description: 'London, the historic capital of England and the United Kingdom, is a vibrant global metropolis blending two millennia of royal heritage with cutting-edge arts, finance, and cuisine. Stretching along the River Thames, it is celebrated for its world-class museums, West End theatre, lush royal parks, and iconic architectural skyline.',
+        landmarks: [
+          {
+            id: 'lon-bigben',
+            name: 'Big Ben & Houses of Parliament',
+            category: 'Historic Landmark',
+            coords: [51.5007, -0.1246],
+            image: 'https://images.unsplash.com/photo-1529655683826-aba9b3e77383?auto=format&fit=crop&w=800&q=80',
+            tip: 'Cross Westminster Bridge at sunset for the best panoramic photo of Elizabeth Tower.'
+          },
+          {
+            id: 'lon-towerbridge',
+            name: 'Tower Bridge',
+            category: 'Engineering Icon',
+            coords: [51.5055, -0.0754],
+            image: 'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?auto=format&fit=crop&w=800&q=80',
+            tip: 'Check the official bridge lift schedule online to watch the bascules open for tall ships.'
+          },
+          {
+            id: 'lon-britishmuseum',
+            name: 'The British Museum',
+            category: 'Art & History',
+            coords: [51.5194, -0.1270],
+            image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=800&q=80',
+            tip: 'General admission is free—reserve a timed entry slot online and head straight to the Rosetta Stone.'
+          }
+        ]
+      },
+      {
+        id: 'paris',
+        name: 'Paris',
+        country: 'France',
+        region: 'Western Europe',
+        tagline: 'The City of Light',
+        timezone: 'Europe/Paris',
+        currency: 'EUR',
+        currencySymbol: '€',
+        language: 'French',
+        bestTime: 'April – June, Oct',
+        coords: [48.8566, 2.3522],
+        heroImage: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1600&q=80',
+        description: 'Paris, the capital of France, earned its famous nickname "The City of Light" (La Ville Lumière) both for its leading role during the Age of Enlightenment and its early adoption of gas street lighting. Famous for Haussmannian boulevards, café culture, haute couture, and timeless art collections, Paris remains one of the world’s most inspiring cultural capitals.',
+        landmarks: [
+          {
+            id: 'par-eiffel',
+            name: 'Eiffel Tower',
+            category: 'Architectural Wonder',
+            coords: [48.8584, 2.2945],
+            image: 'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?auto=format&fit=crop&w=800&q=80',
+            tip: 'Watch the tower sparkle for 5 minutes at the start of every hour after dusk from Trocadéro.'
+          },
+          {
+            id: 'par-louvre',
+            name: 'Louvre Museum',
+            category: 'World Museum',
+            coords: [48.8606, 2.3376],
+            image: 'https://images.unsplash.com/photo-1565099824688-e93eb20fe622?auto=format&fit=crop&w=800&q=80',
+            tip: 'Enter via the Carrousel du Louvre underground entrance to skip the main glass pyramid queue.'
+          },
+          {
+            id: 'par-montmartre',
+            name: 'Montmartre & Sacré-Cœur',
+            category: 'Historic District',
+            coords: [48.8867, 2.3431],
+            image: 'https://images.unsplash.com/photo-1550340499-a6c60fc8287c?auto=format&fit=crop&w=800&q=80',
+            tip: 'Climb the hilltop steps early in the morning for sweeping city views and quiet cobblestone streets.'
+          }
+        ]
+      },
+      {
+        id: 'tokyo',
+        name: 'Tokyo',
+        country: 'Japan',
+        region: 'East Asia',
+        tagline: 'Where Ancient Tradition Meets Neon Future',
+        timezone: 'Asia/Tokyo',
+        currency: 'JPY',
+        currencySymbol: '¥',
+        language: 'Japanese',
+        bestTime: 'March – May, Oct – Nov',
+        coords: [35.6762, 139.6503],
+        heroImage: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1600&q=80',
+        description: 'Tokyo, Japan’s bustling capital, seamlessly pairs centuries-old wooden temples and tranquil cedar gardens with futuristic skyscrapers, bullet trains, and Michelin-starred street food. From the historic alleys of Asakusa to the electric energy of Shibuya and Shinjuku, Tokyo offers unmatched hospitality, precision, and cultural depth.',
+        landmarks: [
+          {
+            id: 'tok-sensoji',
+            name: 'Senso-ji Temple',
+            category: 'Cultural Heritage',
+            coords: [35.7148, 139.7967],
+            image: 'https://images.unsplash.com/photo-1583084647979-b53f8498e7b1?auto=format&fit=crop&w=800&q=80',
+            tip: 'Stroll down Nakamise-dori street for freshly baked ningyo-yaki cakes before entering the main hall.'
+          },
+          {
+            id: 'tok-shibuya',
+            name: 'Shibuya Crossing',
+            category: 'Urban Spectacle',
+            coords: [35.6595, 139.7004],
+            image: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=800&q=80',
+            tip: 'Head up to Shibuya Sky observation deck just before twilight for a 360° view of Mount Fuji and city lights.'
+          },
+          {
+            id: 'tok-skytree',
+            name: 'Tokyo Skytree',
+            category: 'Modern Skyline',
+            coords: [35.7101, 139.8107],
+            image: 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?auto=format&fit=crop&w=800&q=80',
+            tip: 'At 634 meters tall, it is the tallest tower in Japan—visit on crisp winter mornings for crystal clarity.'
+          }
+        ]
+      },
+      {
+        id: 'mumbai',
+        name: 'Mumbai',
+        country: 'India',
+        region: 'South Asia',
+        tagline: 'The City of Dreams & Bollywood',
+        timezone: 'Asia/Kolkata',
+        currency: 'INR',
+        currencySymbol: '₹',
+        language: 'Marathi, Hindi, English',
+        bestTime: 'November – February',
+        coords: [19.0760, 72.8777],
+        heroImage: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&w=1600&q=80',
+        description: 'Mumbai, India’s financial powerhouse and the beating heart of Bollywood, sits on a vibrant peninsula along the Arabian Sea. Famous for its Victorian Gothic and Art Deco heritage, bustling spice bazaars, coastal promenades, and legendary street food like vada pav, Mumbai captures the unstoppable energy of modern India.',
+        landmarks: [
+          {
+            id: 'mum-gateway',
+            name: 'Gateway of India',
+            category: 'Historic Monument',
+            coords: [18.9220, 72.8347],
+            image: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=800&q=80',
+            tip: 'Arrive right after sunrise to enjoy cool sea breezes and catch the early ferry to Elephanta Caves.'
+          },
+          {
+            id: 'mum-marinedrive',
+            name: 'Marine Drive (Queen’s Necklace)',
+            category: 'Coastal Promenade',
+            coords: [18.9432, 72.8235],
+            image: 'https://images.unsplash.com/photo-1566552881560-0be862a7c445?auto=format&fit=crop&w=800&q=80',
+            tip: 'Walk the 3.6 km curve after dusk when the golden streetlights resemble a glowing string of pearls.'
+          },
+          {
+            id: 'mum-csmt',
+            name: 'Chhatrapati Shivaji Terminus',
+            category: 'UNESCO Architecture',
+            coords: [18.9398, 72.8355],
+            image: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&w=800&q=80',
+            tip: 'Admire the intricate stone carvings blending Victorian Gothic Revival with traditional Indian motifs.'
+          }
+        ]
+      },
+      {
+        id: 'newyork',
+        name: 'New York City',
+        country: 'United States',
+        region: 'North America',
+        tagline: 'The City That Never Sleeps',
+        timezone: 'America/New_York',
+        currency: 'USD',
+        currencySymbol: '$',
+        language: 'English',
+        bestTime: 'April – June, Sep – Nov',
+        coords: [40.7128, -74.0060],
+        heroImage: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=1600&q=80',
+        description: 'New York City is a global hub of culture, finance, media, and diversity spanning five iconic boroughs. From the neon billboards of Times Square and Broadway theatres to the leafy trails of Central Park and world-renowned art institutions, NYC offers an unmatched urban rhythm.',
+        landmarks: [
+          {
+            id: 'nyc-liberty',
+            name: 'Statue of Liberty',
+            category: 'National Monument',
+            coords: [40.6892, -74.0445],
+            image: 'https://images.unsplash.com/photo-1605130284535-11dd9eedc58a?auto=format&fit=crop&w=800&q=80',
+            tip: 'Book Crown or Pedestal tickets months in advance, or ride the free Staten Island Ferry for harbor views.'
+          },
+          {
+            id: 'nyc-centralpark',
+            name: 'Central Park',
+            category: 'Urban Oasis',
+            coords: [40.7829, -73.9654],
+            image: 'https://images.unsplash.com/photo-1534270804882-6b5048b1c1fc?auto=format&fit=crop&w=800&q=80',
+            tip: 'Rent a bike or stroll through Bethesda Terrace and Bow Bridge during autumn foliage season.'
+          },
+          {
+            id: 'nyc-brooklynbridge',
+            name: 'Brooklyn Bridge',
+            category: 'Historic Landmark',
+            coords: [40.7061, -73.9969],
+            image: 'https://images.unsplash.com/photo-1518391846015-55a9cc003b25?auto=format&fit=crop&w=800&q=80',
+            tip: 'Walk from Brooklyn toward Manhattan in the morning so the Lower Manhattan skyline stays right in front of you.'
+          }
+        ]
+      },
+      {
+        id: 'cairo',
+        name: 'Cairo',
+        country: 'Egypt',
+        region: 'North Africa & Middle East',
+        tagline: 'Mother of the World on the Nile',
+        timezone: 'Africa/Cairo',
+        currency: 'EGP',
+        currencySymbol: 'E£',
+        language: 'Arabic',
+        bestTime: 'October – April',
+        coords: [30.0444, 31.2357],
+        heroImage: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?auto=format&fit=crop&w=1600&q=80',
+        description: 'Set along the fertile banks of the Nile River, Cairo is a living bridge between ancient Pharaonic civilization and vibrant modern Arab culture. Home to the last surviving Wonder of the Ancient World, centuries-old mosques, and labyrinthine medieval souks, Cairo offers an unforgettable journey through human history.',
+        landmarks: [
+          {
+            id: 'cai-pyramids',
+            name: 'Pyramids of Giza & Great Sphinx',
+            category: 'Ancient Wonder',
+            coords: [29.9792, 31.1342],
+            image: 'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?auto=format&fit=crop&w=800&q=80',
+            tip: 'Arrive at 8:00 AM sharp when the gates open to beat tour buses and midday desert heat.'
+          },
+          {
+            id: 'cai-khalili',
+            name: 'Khan el-Khalili Bazaar',
+            category: 'Historic Market',
+            coords: [30.0477, 31.2623],
+            image: 'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?auto=format&fit=crop&w=800&q=80',
+            tip: 'Sip traditional mint tea at El Fishawy café while watching brass artisans and spice merchants at work.'
+          },
+          {
+            id: 'cai-citadel',
+            name: 'Citadel of Saladin',
+            category: 'Medieval Fortress',
+            coords: [30.0299, 31.2611],
+            image: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?auto=format&fit=crop&w=800&q=80',
+            tip: 'Visit the alabaster Mosque of Muhammad Ali inside the fortress for sweeping views across Old Cairo.'
+          }
+        ]
+      },
+      {
+        id: 'sydney',
+        name: 'Sydney',
+        country: 'Australia',
+        region: 'Oceania',
+        tagline: 'Sun-Drenched Harbour Metropolis',
+        timezone: 'Australia/Sydney',
+        currency: 'AUD',
+        currencySymbol: 'A$',
+        language: 'English',
+        bestTime: 'September – November, Mar – May',
+        coords: [-33.8688, 151.2093],
+        heroImage: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=1600&q=80',
+        description: 'Built around one of the world’s most spectacular natural harbours, Sydney blends laid-back coastal surf culture with cosmopolitan dining and iconic modern architecture. Whether ferrying across sparkling blue waters or hiking dramatic sandstone sea cliffs, Sydney celebrates outdoor life year-round.',
+        landmarks: [
+          {
+            id: 'syd-opera',
+            name: 'Sydney Opera House',
+            category: 'Architectural Masterpiece',
+            coords: [-33.8568, 151.2153],
+            image: 'https://images.unsplash.com/photo-1523059623039-a9ed027e7fad?auto=format&fit=crop&w=800&q=80',
+            tip: 'Take the public ferry from Circular Quay to Manly at sunset for the ultimate view of the white sails.'
+          },
+          {
+            id: 'syd-bondi',
+            name: 'Bondi to Coogee Coastal Walk',
+            category: 'Coastal Trail',
+            coords: [-33.8915, 151.2767],
+            image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+            tip: 'Follow the 6 km clifftop path past Bondi Icebergs ocean pool and hidden turquoise coves.'
+          },
+          {
+            id: 'syd-harbourbridge',
+            name: 'Sydney Harbour Bridge',
+            category: 'Engineering Icon',
+            coords: [-33.8523, 151.2108],
+            image: 'https://images.unsplash.com/photo-1524293581917-878a6d017c71?auto=format&fit=crop&w=800&q=80',
+            tip: 'Walk across the pedestrian path on the eastern side for free panoramic views of the Opera House.'
+          }
+        ]
+      },
+      {
+        id: 'rio',
+        name: 'Rio de Janeiro',
+        country: 'Brazil',
+        region: 'South America',
+        tagline: 'The Marvelous City of Samba & Peaks',
+        timezone: 'America/Sao_Paulo',
+        currency: 'BRL',
+        currencySymbol: 'R$',
+        language: 'Portuguese',
+        bestTime: 'May – October',
+        coords: [-22.9068, -43.1729],
+        heroImage: 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=1600&q=80',
+        description: 'Nestled between lush emerald mountains and golden Atlantic beaches, Rio de Janeiro is famous for its Carnival rhythms, bossa nova heritage, and dramatic granite peaks. Few cities on Earth rival Rio’s fusion of tropical rainforest, vibrant street life, and breathtaking coastal topography.',
+        landmarks: [
+          {
+            id: 'rio-christ',
+            name: 'Christ the Redeemer',
+            category: 'New 7 Wonders',
+            coords: [-22.9519, -43.2105],
+            image: 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=800&q=80',
+            tip: 'Ride the historic Corcovado cog train through Tijuca Forest early in the morning before clouds gather.'
+          },
+          {
+            id: 'rio-sugarloaf',
+            name: 'Sugarloaf Mountain',
+            category: 'Scenic Peak',
+            coords: [-22.9492, -43.1545],
+            image: 'https://images.unsplash.com/photo-1544989164-31dc3c645987?auto=format&fit=crop&w=800&q=80',
+            tip: 'Take the two-stage glass cable car 30 minutes before sunset to watch Guanabara Bay light up.'
+          },
+          {
+            id: 'rio-copacabana',
+            name: 'Copacabana & Ipanema Beaches',
+            category: 'Iconic Coastline',
+            coords: [-22.9711, -43.1822],
+            image: 'https://images.unsplash.com/photo-1518639192441-8fce0a366e2e?auto=format&fit=crop&w=800&q=80',
+            tip: 'Join locals at Arpoador rock at dusk where crowds applaud as the sun dips behind Dois Irmãos peaks.'
+          }
+        ]
+      }
+    ];
+
+    // Currency symbol helper
+    const CURRENCY_SYMBOLS = {
+      GBP: '£', EUR: '€', JPY: '¥', USD: '$', INR: '₹', AUD: 'A$', CAD: 'C$', EGP: 'E£', BRL: 'R$',
+      KRW: '₩', AED: 'د.إ', SGD: 'S$', CHF: 'Fr', THB: '฿', ZAR: 'R', MXN: '$'
+    };
+
+    // Fallback exchange rates (Base: USD) in case offline or non-ECB currency
+    const FALLBACK_RATES_USD = {
+      USD: 1,
+      INR: 84.5,
+      EUR: 0.92,
+      GBP: 0.79,
+      JPY: 153.2,
+      AUD: 1.52,
+      CAD: 1.39,
+      EGP: 49.3,
+      BRL: 5.75,
+      KRW: 1395.0,
+      AED: 3.67,
+      SGD: 1.34,
+      CHF: 0.88,
+      THB: 34.5,
+      ZAR: 18.1,
+      MXN: 20.2
+    };
+
+    // Quick Country-to-Currency helper for Auto-Fill
+    const COUNTRY_CURRENCY_MAP = {
+      'United Kingdom': 'GBP', 'France': 'EUR', 'Germany': 'EUR', 'Italy': 'EUR', 'Spain': 'EUR',
+      'Netherlands': 'EUR', 'Greece': 'EUR', 'Portugal': 'EUR', 'Ireland': 'EUR', 'Japan': 'JPY',
+      'India': 'INR', 'United States': 'USD', 'Australia': 'AUD', 'Canada': 'CAD', 'Egypt': 'EGP',
+      'Brazil': 'BRL', 'South Korea': 'KRW', 'United Arab Emirates': 'AED', 'Singapore': 'SGD',
+      'Switzerland': 'CHF', 'Thailand': 'THB', 'South Africa': 'ZAR', 'Mexico': 'MXN'
+    };
+
+    /**
+     * 2. APPLICATION STATE & STORAGE
+     */
+    const STORAGE_KEYS = {
+      CITIES: 'wandergrid_cities_v2',
+      VISITED: 'wandergrid_visited_v1',
+      ACTIVE_CITY: 'wandergrid_active_city_v1'
+    };
+
+    let state = {
+      cities: [],
+      visitedLandmarks: [],
+      activeCityId: 'london',
+      searchQuery: '',
+      clockInterval: null,
+      map: null,
+      markersLayer: null,
+      landmarkMarkers: {},
+      exchangeRates: { ...FALLBACK_RATES_USD },
+      ratesLoadedLive: false
+    };
+
+    /**
+     * 3. INITIALIZATION
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStateFromStorage();
+      initLeafletMap();
+      setupEventListeners();
+      fetchLiveExchangeRates();
+      renderSidebar();
+      selectCity(state.activeCityId);
+      lucide.createIcons();
+    });
+
+    function loadStateFromStorage() {
+      try {
+        const savedCities = localStorage.getItem(STORAGE_KEYS.CITIES);
+        const savedVisited = localStorage.getItem(STORAGE_KEYS.VISITED);
+        const savedActive = localStorage.getItem(STORAGE_KEYS.ACTIVE_CITY);
+
+        state.cities = savedCities ? JSON.parse(savedCities) : structuredClone(DEFAULT_CITIES);
+        state.visitedLandmarks = savedVisited ? JSON.parse(savedVisited) : [];
+        if (savedActive && state.cities.some(c => c.id === savedActive)) {
+          state.activeCityId = savedActive;
+        }
+      } catch (err) {
+        console.warn('Storage load fallback:', err);
+        state.cities = structuredClone(DEFAULT_CITIES);
+        state.visitedLandmarks = [];
+      }
+    }
+
+    function saveStateToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEYS.CITIES, JSON.stringify(state.cities));
+        localStorage.setItem(STORAGE_KEYS.VISITED, JSON.stringify(state.visitedLandmarks));
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_CITY, state.activeCityId);
+      } catch (err) {
+        console.warn('Storage save failed:', err);
+      }
+    }
+
+    /**
+     * 4. RENDER NAVIGATION & PROGRESS
+     */
+    function renderSidebar() {
+      const navList = document.getElementById('city-nav-list');
+      const countBadge = document.getElementById('city-count-badge');
+      countBadge.textContent = state.cities.length;
+
+      const query = state.searchQuery.toLowerCase().trim();
+      const filteredCities = state.cities.filter(city =>
+        city.name.toLowerCase().includes(query) ||
+        city.country.toLowerCase().includes(query) ||
+        (city.region && city.region.toLowerCase().includes(query))
+      );
+
+      if (!filteredCities.length) {
+        navList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No matching destinations.</p>`;
+        updateGlobalProgress();
+        return;
+      }
+
+      navList.innerHTML = filteredCities.map(city => {
+        const isActive = city.id === state.activeCityId;
+        const visitedInCity = city.landmarks.filter(l => state.visitedLandmarks.includes(l.id)).length;
+
+        return `
+          <button
+            onclick="handleCityClick('${city.id}')"
+            class="w-full text-left px-3.5 py-3 rounded-xl flex items-center justify-between transition-all cursor-pointer group ${
+              isActive
+                ? 'bg-emerald-500/15 text-white border border-emerald-400/30 shadow-xs'
+                : 'text-slate-300 hover:bg-slate-800/80 hover:text-white border border-transparent'
+            }"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-slate-600 group-hover:bg-slate-400'}"></span>
+              <div class="truncate">
+                <div class="font-semibold text-sm truncate">${escapeHTML(city.name)}</div>
+                <div class="text-[11px] text-slate-400 truncate">${escapeHTML(city.country)}</div>
+              </div>
+            </div>
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded-md shrink-0 ${
+              visitedInCity === city.landmarks.length && city.landmarks.length > 0
+                ? 'bg-emerald-500/20 text-emerald-300'
+                : 'bg-slate-800 text-slate-400'
+            }">
+              ${visitedInCity}/${city.landmarks.length}
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      updateGlobalProgress();
+    }
+
+    function updateGlobalProgress() {
+      const totalLandmarks = state.cities.reduce((sum, city) => sum + city.landmarks.length, 0);
+      const validIds = new Set(state.cities.flatMap(c => c.landmarks.map(l => l.id)));
+      const visitedCount = state.visitedLandmarks.filter(id => validIds.has(id)).length;
+      const pct = totalLandmarks > 0 ? Math.round((visitedCount / totalLandmarks) * 100) : 0;
+
+      document.getElementById('global-progress-text').textContent = `${visitedCount} / ${totalLandmarks} (${pct}%)`;
+      document.getElementById('global-progress-bar').style.width = `${pct}%`;
+    }
+
+    /**
+     * 5. CITY SELECTION & DASHBOARD UPDATE
+     */
+    function handleCityClick(cityId) {
+      selectCity(cityId);
+      closeMobileSidebar();
+    }
+
+    function selectCity(cityId) {
+      const city = state.cities.find(c => c.id === cityId) || state.cities[0];
+      if (!city) return;
+
+      state.activeCityId = city.id;
+      saveStateToStorage();
+      renderSidebar();
+
+      // Breadcrumbs & Hero
+      document.getElementById('breadcrumb-country').textContent = city.country;
+      document.getElementById('breadcrumb-city').textContent = city.name;
+      document.getElementById('city-region-badge').textContent = city.region || 'Global Destination';
+      document.getElementById('city-tagline-badge').textContent = city.tagline || 'Featured City';
+      document.getElementById('city-title').textContent = city.name;
+
+      const latDir = city.coords[0] >= 0 ? 'N' : 'S';
+      const lngDir = city.coords[1] >= 0 ? 'E' : 'W';
+      document.getElementById('city-subtitle').textContent =
+        `${city.country} • Coords: ${Math.abs(city.coords[0]).toFixed(4)}° ${latDir}, ${Math.abs(city.coords[1]).toFixed(4)}° ${lngDir}`;
+
+      const heroImg = document.getElementById('city-hero-img');
+      heroImg.style.opacity = '1';
+      heroImg.src = city.heroImage || '';
+
+      // Show delete button only for user-added custom cities
+      const isDefault = DEFAULT_CITIES.some(d => d.id === city.id);
+      const delBtn = document.getElementById('delete-city-btn');
+      if (!isDefault) {
+        delBtn.classList.remove('hidden');
+        delBtn.classList.add('flex');
+      } else {
+        delBtn.classList.add('hidden');
+        delBtn.classList.remove('flex');
+      }
+
+      // Overview & Snapshot
+      document.getElementById('overview-heading').textContent = `Discovering ${city.name}`;
+      document.getElementById('city-description').textContent = city.description;
+      document.getElementById('city-language').textContent = city.language || 'Local Language';
+      document.getElementById('city-best-time').textContent = city.bestTime || 'Year-round';
+      document.getElementById('weather-tz-label').textContent = city.timezone;
+
+      // Update Live Features
+      startLocalClock(city.timezone);
+      fetchCityWeather(city.coords[0], city.coords[1]);
+      updateCurrencyWidget(city);
+      renderLandmarks(city);
+      updateMapForCity(city);
+    }
+
+    /**
+     * 6. REAL-TIME LOCAL CLOCK (Intl.DateTimeFormat)
+     */
+    function startLocalClock(timezone) {
+      if (state.clockInterval) clearInterval(state.clockInterval);
+
+      const updateTick = () => {
+        try {
+          const now = new Date();
+          const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+            timeZone: timezone,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          const dateFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+          });
+          const hourFormatter = new Intl.DateTimeFormat('en-GB', {
+            timeZone: timezone,
+            hour: 'numeric',
+            hour12: false
+          });
+
+          const localHour = parseInt(hourFormatter.format(now), 10);
+          const isDaytime = localHour >= 6 && localHour < 19;
+
+          document.getElementById('live-clock-time').textContent = timeFormatter.format(now);
+          document.getElementById('live-clock-date').textContent = `(${dateFormatter.format(now)})`;
+
+          const iconWrap = document.getElementById('day-night-icon');
+          iconWrap.className = isDaytime ? 'text-amber-500 flex items-center' : 'text-indigo-500 flex items-center';
+          iconWrap.innerHTML = isDaytime
+            ? '<i data-lucide="sun" class="w-4 h-4"></i>'
+            : '<i data-lucide="moon" class="w-4 h-4"></i>';
+          lucide.createIcons();
+        } catch (e) {
+          document.getElementById('live-clock-time').textContent = 'Invalid TZ';
+        }
+      };
+
+      updateTick();
+      state.clockInterval = setInterval(updateTick, 1000);
+    }
+
+    /**
+     * 7. LIVE WEATHER API (Open-Meteo — Free, No API Key Needed)
+     */
+    async function fetchCityWeather(lat, lng) {
+      const tempEl = document.getElementById('weather-temp');
+      const descEl = document.getElementById('weather-desc');
+      const windEl = document.getElementById('weather-wind');
+      const iconBox = document.getElementById('weather-icon-box');
+
+      tempEl.textContent = '...';
+      descEl.textContent = 'Updating weather...';
+
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Weather API error');
+        const data = await response.json();
+        const current = data.current_weather;
+
+        const weatherInfo = decodeWeatherCode(current.weathercode);
+        tempEl.textContent = `${Math.round(current.temperature)}°C`;
+        descEl.textContent = weatherInfo.label;
+        windEl.textContent = `${Math.round(current.windspeed)} km/h`;
+        iconBox.className = `w-14 h-14 rounded-2xl flex items-center justify-center ${weatherInfo.bgClass}`;
+        iconBox.innerHTML = `<i data-lucide="${weatherInfo.icon}" class="w-7 h-7"></i>`;
+        lucide.createIcons();
+      } catch (error) {
+        tempEl.textContent = '21°C';
+        descEl.textContent = 'Partly Cloudy (Offline Est.)';
+        windEl.textContent = '12 km/h';
+      }
+    }
+
+    function decodeWeatherCode(code) {
+      if (code === 0) return { label: 'Clear Sky', icon: 'sun', bgClass: 'bg-amber-50 text-amber-500' };
+      if ([1, 2, 3].includes(code)) return { label: 'Partly Cloudy', icon: 'cloud-sun', bgClass: 'bg-sky-50 text-sky-500' };
+      if ([45, 48].includes(code)) return { label: 'Foggy / Mist', icon: 'cloud-fog', bgClass: 'bg-slate-100 text-slate-500' };
+      if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return { label: 'Rain Showers', icon: 'cloud-rain', bgClass: 'bg-blue-50 text-blue-600' };
+      if ([71, 73, 75, 77, 85, 86].includes(code)) return { label: 'Snowfall', icon: 'snowflake', bgClass: 'bg-cyan-50 text-cyan-600' };
+      if ([95, 96, 99].includes(code)) return { label: 'Thunderstorm', icon: 'cloud-lightning', bgClass: 'bg-purple-50 text-purple-600' };
+      return { label: 'Mild Weather', icon: 'cloud', bgClass: 'bg-slate-100 text-slate-600' };
+    }
+
+    /**
+     * 8. LIVE CURRENCY CONVERTER (Frankfurter API + Fallback)
+     */
+    async function fetchLiveExchangeRates() {
+      try {
+        const res = await fetch('https://api.frankfurter.app/latest?from=USD');
+        if (!res.ok) throw new Error('Currency API error');
+        const data = await res.json();
+        state.exchangeRates = { ...FALLBACK_RATES_USD, USD: 1, ...data.rates };
+        state.ratesLoadedLive = true;
+        document.getElementById('currency-rate-badge').textContent = 'Live ECB Rates';
+      } catch (err) {
+        state.ratesLoadedLive = false;
+        document.getElementById('currency-rate-badge').textContent = 'Standard Rates';
+      }
+      const activeCity = state.cities.find(c => c.id === state.activeCityId);
+      if (activeCity) updateCurrencyWidget(activeCity);
+    }
+
+    function updateCurrencyWidget(city) {
+      const baseSelect = document.getElementById('base-currency-select');
+      const amountInput = document.getElementById('currency-amount-input');
+      const outputEl = document.getElementById('currency-converted-output');
+      const localCodeEl = document.getElementById('local-currency-code');
+      const rateTextEl = document.getElementById('exchange-rate-text');
+
+      const baseCurr = baseSelect.value;
+      const targetCurr = city.currency || 'USD';
+      const symbol = city.currencySymbol || CURRENCY_SYMBOLS[targetCurr] || '$';
+      const amount = parseFloat(amountInput.value) || 0;
+
+      const baseToUsd = 1 / (state.exchangeRates[baseCurr] || 1);
+      const usdToTarget = state.exchangeRates[targetCurr] || 1;
+      const conversionRate = baseToUsd * usdToTarget;
+      const convertedVal = amount * conversionRate;
+
+      localCodeEl.textContent = `${targetCurr} (${symbol})`;
+      outputEl.textContent = `${symbol}${convertedVal.toLocaleString(undefined, {
+        minimumFractionDigits: targetCurr === 'JPY' ? 0 : 2,
+        maximumFractionDigits: targetCurr === 'JPY' ? 0 : 2
+      })}`;
+      rateTextEl.textContent = `1 ${baseCurr} = ${conversionRate.toFixed(targetCurr === 'JPY' ? 2 : 4)} ${targetCurr}`;
+    }
+
+    /**
+     * 9. LANDMARKS & BUCKET LIST CHECKLIST
+     */
+    function renderLandmarks(city) {
+      const grid = document.getElementById('landmarks-grid');
+      const visitedCount = city.landmarks.filter(l => state.visitedLandmarks.includes(l.id)).length;
+      document.getElementById('city-landmark-progress').textContent = `${visitedCount} / ${city.landmarks.length} Visited`;
+
+      if (!city.landmarks.length) {
+        grid.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center text-slate-500 text-sm">No landmarks listed for this custom city yet.</div>`;
+        return;
+      }
+
+      grid.innerHTML = city.landmarks.map(landmark => {
+        const isVisited = state.visitedLandmarks.includes(landmark.id);
+        return `
+          <article class="landmark-card bg-white rounded-2xl border ${isVisited ? 'border-emerald-300 ring-1 ring-emerald-500/20' : 'border-slate-200/80'} shadow-xs overflow-hidden flex flex-col justify-between transition-all">
+            <div>
+              <div class="relative h-48 overflow-hidden bg-slate-800">
+                <img
+                  src="${landmark.image || city.heroImage}"
+                  alt="${escapeHTML(landmark.name)}"
+                  class="landmark-img w-full h-full object-cover"
+                  onerror="this.src='https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80'"
+                >
+                <div class="absolute top-3 left-3">
+                  <span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-950/75 text-white backdrop-blur-xs">
+                    ${escapeHTML(landmark.category || 'Attraction')}
+                  </span>
+                </div>
+                ${isVisited ? `
+                  <div class="absolute top-3 right-3 bg-emerald-500 text-slate-950 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-md">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i> Visited
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="p-5">
+                <h4 class="font-serif text-xl font-bold text-slate-900 mb-2">${escapeHTML(landmark.name)}</h4>
+                <p class="text-xs sm:text-sm text-slate-600 leading-relaxed flex items-start gap-2">
+                  <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                  <span>${escapeHTML(landmark.tip)}</span>
+                </p>
+              </div>
+            </div>
+
+            <div class="px-5 pb-5 pt-2 flex items-center gap-2">
+              <button
+                onclick="toggleLandmarkVisited('${landmark.id}')"
+                class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  isVisited
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                }"
+              >
+                <i data-lucide="${isVisited ? 'check-circle-2' : 'circle'}" class="w-4 h-4"></i>
+                <span>${isVisited ? 'Visited' : 'Mark Visited'}</span>
+              </button>
+
+              <button
+                onclick="focusLandmarkOnMap('${landmark.id}')"
+                class="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 transition cursor-pointer"
+                title="Locate on Map"
+              >
+                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>Locate</span>
+              </button>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function toggleLandmarkVisited(landmarkId) {
+      const idx = state.visitedLandmarks.indexOf(landmarkId);
+      if (idx === -1) {
+        state.visitedLandmarks.push(landmarkId);
+        showToast('Added to your visited landmarks!');
+      } else {
+        state.visitedLandmarks.splice(idx, 1);
+        showToast('Removed from visited list.');
+      }
+      saveStateToStorage();
+      renderSidebar();
+      const city = state.cities.find(c => c.id === state.activeCityId);
+      if (city) renderLandmarks(city);
+    }
+
+    /**
+     * 10. INTERACTIVE LEAFLET MAP
+     */
+    function initLeafletMap() {
+      state.map = L.map('city-map', {
+        scrollWheelZoom: false
+      }).setView([51.5072, -0.1276], 12);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        maxZoom: 19
+      }).addTo(state.map);
+
+      state.markersLayer = L.layerGroup().addTo(state.map);
+    }
+
+    function updateMapForCity(city) {
+      if (!state.map) return;
+      state.markersLayer.clearLayers();
+      state.landmarkMarkers = {};
+
+      state.map.flyTo(city.coords, 12, { duration: 1.2 });
+
+      city.landmarks.forEach(landmark => {
+        if (!landmark.coords) return;
+        const marker = L.marker(landmark.coords).addTo(state.markersLayer);
+        marker.bindPopup(`
+          <div style="font-family: Inter, sans-serif; min-width: 160px;">
+            <strong style="font-size: 13px; color: #0f172a;">${escapeHTML(landmark.name)}</strong>
+            <p style="font-size: 11px; color: #475569; margin: 4px 0 0;">${escapeHTML(landmark.category || '')}</p>
+          </div>
+        `);
+        state.landmarkMarkers[landmark.id] = marker;
+      });
+    }
+
+    function focusLandmarkOnMap(landmarkId) {
+      const city = state.cities.find(c => c.id === state.activeCityId);
+      if (!city) return;
+      const landmark = city.landmarks.find(l => l.id === landmarkId);
+      const marker = state.landmarkMarkers[landmarkId];
+
+      document.getElementById('map-section').scrollIntoView({ behavior: 'smooth' });
+
+      if (landmark && landmark.coords && state.map) {
+        state.map.flyTo(landmark.coords, 15, { duration: 1.2 });
+        if (marker) {
+          setTimeout(() => marker.openPopup(), 600);
+        }
+      }
+    }
+
+    /**
+     * 11. ADD CUSTOM CITY & EVENT LISTENERS
+     */
+    function setupEventListeners() {
+      // Currency input listeners
+      document.getElementById('base-currency-select').addEventListener('change', () => {
+        const city = state.cities.find(c => c.id === state.activeCityId);
+        if (city) updateCurrencyWidget(city);
+      });
+      document.getElementById('currency-amount-input').addEventListener('input', () => {
+        const city = state.cities.find(c => c.id === state.activeCityId);
+        if (city) updateCurrencyWidget(city);
+      });
+
+      // Sidebar Search Filter
+      document.getElementById('city-search-input').addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        renderSidebar();
+      });
+
+      // Recenter Map
+      document.getElementById('recenter-map-btn').addEventListener('click', () => {
+        const city = state.cities.find(c => c.id === state.activeCityId);
+        if (city && state.map) state.map.flyTo(city.coords, 12, { duration: 1 });
+      });
+
+      // Mobile Sidebar Toggle
+      document.getElementById('mobile-menu-btn').addEventListener('click', openMobileSidebar);
+      document.getElementById('close-sidebar-btn').addEventListener('click', closeMobileSidebar);
+      document.getElementById('sidebar-backdrop').addEventListener('click', closeMobileSidebar);
+
+      // Modal Controls
+      const modal = document.getElementById('add-city-modal');
+      document.getElementById('open-add-city-btn').addEventListener('click', () => {
+        closeMobileSidebar();
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      });
+
+      const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.getElementById('geocode-results-list').classList.add('hidden');
+      };
+      document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+      document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
+
+      // Smart City Geocoding Search (Open-Meteo Geocoding API)
+      const geoInput = document.getElementById('geocode-search-input');
+      const geoBtn = document.getElementById('geocode-search-btn');
+      const geoResults = document.getElementById('geocode-results-list');
+
+      const runGeocodeSearch = async () => {
+        const query = geoInput.value.trim();
+        if (query.length < 2) {
+          showToast('Enter at least 2 characters to search.');
+          return;
+        }
+        geoBtn.textContent = '...';
+        try {
+          const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+          const data = await res.json();
+          if (!data.results || !data.results.length) {
+            geoResults.innerHTML = `<div class="p-2.5 text-xs text-slate-500">No cities found for "${escapeHTML(query)}".</div>`;
+            geoResults.classList.remove('hidden');
+            return;
+          }
+
+          geoResults.innerHTML = data.results.map((place, idx) => `
+            <button
+              type="button"
+              data-geo-idx="${idx}"
+              class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-xs flex items-center justify-between transition cursor-pointer"
+            >
+              <div>
+                <span class="font-semibold text-slate-900">${escapeHTML(place.name)}</span>
+                <span class="text-slate-500">${place.admin1 ? ', ' + escapeHTML(place.admin1) : ''} — ${escapeHTML(place.country || '')}</span>
+              </div>
+              <span class="text-[11px] font-mono text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded">Select</span>
+            </button>
+          `).join('');
+          geoResults.classList.remove('hidden');
+
+          geoResults.querySelectorAll('button[data-geo-idx]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const selected = data.results[parseInt(btn.dataset.geoIdx, 10)];
+              document.getElementById('new-city-name').value = selected.name || '';
+              document.getElementById('new-city-country').value = selected.country || '';
+              document.getElementById('new-city-lat').value = selected.latitude.toFixed(4);
+              document.getElementById('new-city-lng').value = selected.longitude.toFixed(4);
+              document.getElementById('new-city-tz').value = selected.timezone || 'UTC';
+
+              const detectedCurrency = COUNTRY_CURRENCY_MAP[selected.country] || 'USD';
+              document.getElementById('new-city-currency').value = detectedCurrency;
+
+              const descField = document.getElementById('new-city-desc');
+              if (!descField.value.trim()) {
+                descField.value = `${selected.name} is a vibrant destination in ${selected.country}, known for its unique local culture, architecture, and regional cuisine.`;
+              }
+
+              geoResults.classList.add('hidden');
+              geoInput.value = '';
+              showToast(`Auto-filled details for ${selected.name}!`);
+            });
+          });
+        } catch (err) {
+          showToast('City lookup failed. You can still enter details manually.');
+        } finally {
+          geoBtn.textContent = 'Find';
+        }
+      };
+
+      geoBtn.addEventListener('click', runGeocodeSearch);
+      geoInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          runGeocodeSearch();
+        }
+      });
+
+      // Handle Custom City Form Submission
+      document.getElementById('add-city-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('new-city-name').value.trim();
+        const country = document.getElementById('new-city-country').value.trim();
+        const currency = document.getElementById('new-city-currency').value;
+        const lat = parseFloat(document.getElementById('new-city-lat').value);
+        const lng = parseFloat(document.getElementById('new-city-lng').value);
+        const timezone = document.getElementById('new-city-tz').value.trim();
+        const language = document.getElementById('new-city-lang').value.trim() || 'Local';
+        const description = document.getElementById('new-city-desc').value.trim();
+        const landmarkName = document.getElementById('new-landmark-name').value.trim();
+        const landmarkTip = document.getElementById('new-landmark-tip').value.trim();
+
+        const newId = 'custom-' + Date.now();
+        const newCity = {
+          id: newId,
+          name,
+          country,
+          region: 'Custom Destination',
+          tagline: 'Explorer Added City',
+          timezone,
+          currency,
+          currencySymbol: CURRENCY_SYMBOLS[currency] || '$',
+          language,
+          bestTime: 'Spring & Autumn',
+          coords: [lat, lng],
+          heroImage: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1600&q=80',
+          description,
+          landmarks: landmarkName ? [{
+            id: 'lm-' + Date.now(),
+            name: landmarkName,
+            category: 'Must-See Spot',
+            coords: [lat, lng],
+            image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80',
+            tip: landmarkTip || 'Explore early in the day for the best atmosphere.'
+          }] : []
+        };
+
+        state.cities.push(newCity);
+        saveStateToStorage();
+        e.target.reset();
+        closeModal();
+        selectCity(newId);
+        showToast(`${name} added to your destinations!`);
+      });
+
+      // Delete Custom City
+      document.getElementById('delete-city-btn').addEventListener('click', () => {
+        const idx = state.cities.findIndex(c => c.id === state.activeCityId);
+        if (idx > -1) {
+          const removedName = state.cities[idx].name;
+          state.cities.splice(idx, 1);
+          saveStateToStorage();
+          selectCity(state.cities[0].id);
+          showToast(`Removed ${removedName}.`);
+        }
+      });
+
+      // Reset Demo Data
+      document.getElementById('reset-demo-btn').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEYS.CITIES);
+        localStorage.removeItem(STORAGE_KEYS.VISITED);
+        localStorage.removeItem(STORAGE_KEYS.ACTIVE_CITY);
+        state.cities = structuredClone(DEFAULT_CITIES);
+        state.visitedLandmarks = [];
+        selectCity('london');
+        showToast('Dashboard reset to default cities.');
+      });
+    }
+
+    function openMobileSidebar() {
+      document.getElementById('sidebar').classList.remove('-translate-x-full');
+      document.getElementById('sidebar-backdrop').classList.remove('hidden');
+    }
+
+    function closeMobileSidebar() {
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+      document.getElementById('sidebar-backdrop').classList.add('hidden');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-notification');
+      document.getElementById('toast-message').textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2800);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
