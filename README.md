@@ -35,7 +35,7 @@ No build tools or package installations are required!
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/wandergrid.git
+   git clone https://github.com/paulsontn/travel-dashboard.git
    ```
 2. Open `index.html` directly in any modern web browser (or use VS Code Live Server).
 
