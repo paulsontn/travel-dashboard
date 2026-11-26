@@ -64,6 +64,15 @@
       font-family: 'Inter', sans-serif;
     }
 
+    /* Hide scrollbar for mobile horizontal city switcher */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
     /* Custom Scrollbar for Sidebar */
     ::-webkit-scrollbar {
       width: 6px;
@@ -87,26 +96,40 @@
   <div class="min-h-screen flex flex-col lg:flex-row">
 
     <!-- Mobile Top Bar -->
-    <header class="lg:hidden bg-slateDark text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
-          <i data-lucide="compass" class="w-5 h-5"></i>
+    <header class="lg:hidden bg-slateDark text-white sticky top-0 z-40 shadow-md">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+          </div>
+          <span class="font-serif text-xl font-bold tracking-tight">Travel Dashboard</span>
         </div>
-        <span class="font-serif text-xl font-bold tracking-tight">Travel Dashboard</span>
+        <button
+          id="mobile-menu-btn"
+          type="button"
+          onclick="openMobileSidebar()"
+          aria-label="Open destinations menu"
+          class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-100 transition cursor-pointer touch-manipulation select-none"
+        >
+          <svg class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
       </div>
-      <button id="mobile-menu-btn" aria-label="Toggle Menu" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
-        <i data-lucide="menu" class="w-5 h-5"></i>
-      </button>
+      <!-- Quick Horizontal City Switcher for One-Tap Mobile Navigation -->
+      <div id="mobile-city-pills" class="flex items-center gap-2 overflow-x-auto px-4 py-2.5 bg-white border-b border-slate-200 no-scrollbar"></div>
     </header>
 
     <!-- Mobile Backdrop -->
-    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
+    <div id="sidebar-backdrop" onclick="closeMobileSidebar()" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden lg:hidden"></div>
 
-    <!-- Left Navigation Sidebar (Replaces old .grid-item2) -->
-    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 h-screen w-72 bg-slateDark text-slate-100 flex flex-col justify-between p-5 transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-xl lg:shadow-none shrink-0">
-      <div>
+    <!-- Left Navigation Sidebar -->
+    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-[60] h-[100dvh] lg:h-screen w-72 bg-slateDark text-slate-100 flex flex-col justify-between p-5 transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-xl lg:shadow-none shrink-0">
+      <div class="min-h-0 flex flex-col">
         <!-- Brand Header -->
-        <div class="flex items-center justify-between mb-8 pb-5 border-b border-slate-800">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800 shrink-0">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
               <i data-lucide="globe" class="w-5 h-5"></i>
@@ -116,13 +139,16 @@
               <p class="text-xs text-slate-400 mt-1">Global City Explorer</p>
             </div>
           </div>
-          <button id="close-sidebar-btn" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
-            <i data-lucide="x" class="w-5 h-5"></i>
+          <button id="close-sidebar-btn" type="button" onclick="closeMobileSidebar()" aria-label="Close menu" class="lg:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer">
+            <svg class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
 
         <!-- Overall Bucket List Progress Card -->
-        <div class="bg-slateCard/90 border border-slate-700/60 rounded-xl p-4 mb-6">
+        <div class="bg-slateCard/90 border border-slate-700/60 rounded-xl p-4 mb-5 shrink-0">
           <div class="flex items-center justify-between text-xs font-medium mb-2">
             <span class="text-slate-300 flex items-center gap-1.5">
               <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -137,45 +163,45 @@
         </div>
 
         <!-- Destinations Navigation List -->
-        <div class="flex items-center justify-between px-2 mb-2">
+        <div class="flex items-center justify-between px-2 mb-2 shrink-0">
           <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Destinations</span>
-          <span id="city-count-badge" class="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">8</span>
+          <span id="city-count-badge" class="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">10</span>
         </div>
 
         <!-- Search Filter Input -->
-        <div class="relative mb-3">
+        <div class="relative mb-3 shrink-0">
           <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
           <input
             type="text"
             id="city-search-input"
             placeholder="Filter cities or countries..."
-            class="w-full bg-slate-800/80 border border-slate-700/70 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            class="w-full bg-slate-800/80 border border-slate-700/70 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
           >
         </div>
 
-        <nav id="city-nav-list" class="space-y-1.5 max-h-[36vh] overflow-y-auto pr-1" aria-label="Cities Navigation">
+        <nav id="city-nav-list" class="space-y-1.5 overflow-y-auto pr-1 flex-1" aria-label="Cities Navigation">
           <!-- Populated dynamically via JavaScript -->
         </nav>
       </div>
 
       <!-- Bottom Sidebar Actions -->
-      <div class="pt-4 border-t border-slate-800 space-y-2.5">
-        <button id="open-add-city-btn" class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/15 cursor-pointer">
+      <div class="pt-4 border-t border-slate-800 space-y-2.5 shrink-0 mt-3">
+        <button id="open-add-city-btn" type="button" class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/15 cursor-pointer">
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
           <span>Add Custom City</span>
         </button>
-        <button id="reset-demo-btn" class="w-full py-2 px-3 rounded-xl bg-slate-800/70 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer">
+        <button id="reset-demo-btn" type="button" class="w-full py-2 px-3 rounded-xl bg-slate-800/70 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer">
           <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
           <span>Reset Default Data</span>
         </button>
       </div>
     </aside>
 
-    <!-- Main Dashboard Content (Replaces old .grid-item1, .grid-item3, .grid-item4) -->
+    <!-- Main Dashboard Content -->
     <div class="flex-1 flex flex-col min-w-0">
 
       <!-- Top Utility Header Bar -->
-      <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-4 sticky top-0 z-30">
+      <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-4 lg:sticky lg:top-0 z-30">
         <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-2 text-sm text-slate-500">
             <span>Destinations</span>
@@ -233,7 +259,7 @@
                   <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600"></i>
                   <span>Explore Map</span>
                 </a>
-                <button id="delete-city-btn" class="hidden px-3.5 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 font-medium text-sm items-center gap-1.5 transition cursor-pointer" title="Remove custom city">
+                <button id="delete-city-btn" type="button" class="hidden px-3.5 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 font-medium text-sm items-center gap-1.5 transition cursor-pointer" title="Remove custom city">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                   <span>Delete</span>
                 </button>
@@ -362,7 +388,7 @@
                 <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Interactive Cartography</span>
                 <h3 class="font-serif text-2xl font-bold text-slate-900 mt-0.5">Landmark Explorer Map</h3>
               </div>
-              <button id="recenter-map-btn" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+              <button id="recenter-map-btn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
                 <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
                 <span>Recenter City</span>
               </button>
@@ -395,14 +421,14 @@
   </div>
 
   <!-- Add Custom City Modal -->
-  <div id="add-city-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+  <div id="add-city-modal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-4 border-b border-slate-100">
         <div>
           <h3 class="font-serif text-2xl font-bold text-slate-900">Add New Destination</h3>
           <p class="text-xs text-slate-500 mt-0.5">Search any city in the world to auto-fill coordinates & timezone.</p>
         </div>
-        <button id="close-modal-btn" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">
+        <button id="close-modal-btn" type="button" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -509,7 +535,7 @@
   </div>
 
   <!-- Toast Notification Banner (Replaces alert()) -->
-  <div id="toast-notification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+  <div id="toast-notification" class="fixed bottom-5 right-5 z-[90] transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2.5 text-sm font-medium">
       <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
       <span id="toast-message">Action completed!</span>
@@ -520,7 +546,6 @@
   <script>
     /**
      * 1. INITIAL DATA STORE
-     * Replaces the hardcoded, copy-pasted HTML files with structured, accurate city data.
      */
     const DEFAULT_CITIES = [
       {
@@ -585,7 +610,7 @@
             category: 'Architectural Wonder',
             coords: [48.8584, 2.2945],
             wikiTitle: 'Eiffel_Tower',
-            image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Tour_Eiffel_Wikimedia_Commons_%28cropped%29.jpg/800px-Tour_Eiffel_Wikimedia_Commons_%28cropped%29.jpg',
+            image: './eiffel.jpg',
             tip: 'Watch the tower sparkle for 5 minutes at the start of every hour after dusk from Trocadéro.'
           },
           {
@@ -887,7 +912,7 @@
             category: 'Hill Station',
             coords: [10.0889, 77.0595],
             wikiTitle: 'Tea_production_in_India',
-            image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Tea_plantation_in_Munnar.jpg/960px-Tea_plantation_in_Munnar.jpg',
+            image: './munnar.jpg',
             tip: 'Visit Kolukkumalai Tea Estate at dawn to watch clouds roll below the world’s highest organic tea gardens.'
           },
           {
@@ -972,24 +997,10 @@
       KRW: '₩', AED: 'د.إ', SGD: 'S$', CHF: 'Fr', THB: '฿', ZAR: 'R', MXN: '$'
     };
 
-    // Fallback exchange rates (Base: USD) in case offline or non-ECB currency
+    // Fallback exchange rates (Base: USD)
     const FALLBACK_RATES_USD = {
-      USD: 1,
-      INR: 84.5,
-      EUR: 0.92,
-      GBP: 0.79,
-      JPY: 153.2,
-      AUD: 1.52,
-      CAD: 1.39,
-      EGP: 49.3,
-      BRL: 5.75,
-      KRW: 1395.0,
-      AED: 3.67,
-      SGD: 1.34,
-      CHF: 0.88,
-      THB: 34.5,
-      ZAR: 18.1,
-      MXN: 20.2
+      USD: 1, INR: 84.5, EUR: 0.92, GBP: 0.79, JPY: 153.2, AUD: 1.52, CAD: 1.39,
+      EGP: 49.3, BRL: 5.75, KRW: 1395.0, AED: 3.67, SGD: 1.34, CHF: 0.88, THB: 34.5, ZAR: 18.1, MXN: 20.2
     };
 
     // Quick Country-to-Currency helper for Auto-Fill
@@ -1005,7 +1016,7 @@
      * 2. APPLICATION STATE & STORAGE
      */
     const STORAGE_KEYS = {
-      CITIES: 'wandergrid_cities_v9',
+      CITIES: 'wandergrid_cities_v10',
       VISITED: 'wandergrid_visited_v1',
       ACTIVE_CITY: 'wandergrid_active_city_v1'
     };
@@ -1033,7 +1044,7 @@
       fetchLiveExchangeRates();
       renderSidebar();
       selectCity(state.activeCityId);
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     });
 
     function loadStateFromStorage() {
@@ -1070,7 +1081,28 @@
     function renderSidebar() {
       const navList = document.getElementById('city-nav-list');
       const countBadge = document.getElementById('city-count-badge');
+      const mobilePills = document.getElementById('mobile-city-pills');
       countBadge.textContent = state.cities.length;
+
+      // Render one-tap horizontal pills for mobile users
+      if (mobilePills) {
+        mobilePills.innerHTML = state.cities.map(city => {
+          const isActive = city.id === state.activeCityId;
+          return `
+            <button
+              type="button"
+              onclick="handleCityClick('${city.id}')"
+              class="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
+                isActive
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }"
+            >
+              ${escapeHTML(city.name)}
+            </button>
+          `;
+        }).join('');
+      }
 
       const query = state.searchQuery.toLowerCase().trim();
       const filteredCities = state.cities.filter(city =>
@@ -1091,6 +1123,7 @@
 
         return `
           <button
+            type="button"
             onclick="handleCityClick('${city.id}')"
             class="w-full text-left px-3.5 py-3 rounded-xl flex items-center justify-between transition-all cursor-pointer group ${
               isActive
@@ -1234,7 +1267,7 @@
           iconWrap.innerHTML = isDaytime
             ? '<i data-lucide="sun" class="w-4 h-4"></i>'
             : '<i data-lucide="moon" class="w-4 h-4"></i>';
-          lucide.createIcons();
+          if (window.lucide) lucide.createIcons();
         } catch (e) {
           document.getElementById('live-clock-time').textContent = 'Invalid TZ';
         }
@@ -1269,7 +1302,7 @@
         windEl.textContent = `${Math.round(current.windspeed)} km/h`;
         iconBox.className = `w-14 h-14 rounded-2xl flex items-center justify-center ${weatherInfo.bgClass}`;
         iconBox.innerHTML = `<i data-lucide="${weatherInfo.icon}" class="w-7 h-7"></i>`;
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
       } catch (error) {
         tempEl.textContent = '21°C';
         descEl.textContent = 'Partly Cloudy (Offline Est.)';
@@ -1398,6 +1431,7 @@
 
             <div class="px-5 pb-5 pt-2 flex items-center gap-2">
               <button
+                type="button"
                 onclick="toggleLandmarkVisited('${landmark.id}')"
                 class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
                   isVisited
@@ -1410,6 +1444,7 @@
               </button>
 
               <button
+                type="button"
                 onclick="focusLandmarkOnMap('${landmark.id}')"
                 class="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 transition cursor-pointer"
                 title="Show on Map"
@@ -1422,9 +1457,9 @@
         `;
       }).join('');
 
-      // Automatically hydrate exact Wikipedia article photos for each landmark
+      // Automatically hydrate Wikipedia photos unless using local bundled photos
       city.landmarks.forEach(landmark => {
-        if (landmark.wikiTitle) {
+        if (landmark.wikiTitle && !(landmark.image && landmark.image.startsWith('./'))) {
           fetchWikipediaImage(landmark.wikiTitle).then(realUrl => {
             if (realUrl) {
               const imgEl = document.getElementById(`img-${landmark.id}`);
@@ -1435,7 +1470,7 @@
         }
       });
 
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     }
 
     function toggleLandmarkVisited(landmarkId) {
@@ -1520,9 +1555,118 @@
     }
 
     /**
-     * 11. ADD CUSTOM CITY & EVENT LISTENERS
+     * 11. MOBILE DRAWER, MODAL & EVENT LISTENERS
      */
+    function openMobileSidebar(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar) {
+        sidebar.classList.remove('-translate-x-full');
+        sidebar.classList.add('translate-x-0');
+        sidebar.style.transform = 'translateX(0)';
+      }
+      if (backdrop) backdrop.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeMobileSidebar(e) {
+      if (e) e.preventDefault();
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar) {
+        sidebar.classList.add('-translate-x-full');
+        sidebar.classList.remove('translate-x-0');
+        sidebar.style.transform = '';
+      }
+      if (backdrop) backdrop.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function openModal() {
+      closeMobileSidebar();
+      const modal = document.getElementById('add-city-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('add-city-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.getElementById('geocode-results-list').classList.add('hidden');
+    }
+
+    async function searchWorldCity() {
+      const query = document.getElementById('geocode-search-input').value.trim();
+      const resultsBox = document.getElementById('geocode-results-list');
+      if (!query) return;
+
+      resultsBox.classList.remove('hidden');
+      resultsBox.innerHTML = `<div class="p-2.5 text-xs text-slate-500">Searching global cities...</div>`;
+
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+        const data = await res.json();
+        if (!data.results || !data.results.length) {
+          resultsBox.innerHTML = `<div class="p-2.5 text-xs text-slate-500">No matching cities found.</div>`;
+          return;
+        }
+
+        resultsBox.innerHTML = data.results.map((item, idx) => `
+          <button type="button" data-geo-idx="${idx}" class="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 flex items-center justify-between cursor-pointer">
+            <span class="font-semibold text-slate-800">${escapeHTML(item.name)}, ${escapeHTML(item.country || '')}</span>
+            <span class="text-slate-400 font-mono">${item.latitude.toFixed(2)}, ${item.longitude.toFixed(2)}</span>
+          </button>
+        `).join('');
+
+        resultsBox.querySelectorAll('button[data-geo-idx]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const picked = data.results[parseInt(btn.dataset.geoIdx, 10)];
+            document.getElementById('new-city-name').value = picked.name;
+            document.getElementById('new-city-country').value = picked.country || '';
+            document.getElementById('new-city-lat').value = picked.latitude;
+            document.getElementById('new-city-lng').value = picked.longitude;
+            if (picked.timezone) document.getElementById('new-city-tz').value = picked.timezone;
+            const mappedCurr = COUNTRY_CURRENCY_MAP[picked.country];
+            if (mappedCurr) document.getElementById('new-city-currency').value = mappedCurr;
+            resultsBox.classList.add('hidden');
+            showToast(`Auto-filled details for ${picked.name}!`);
+          });
+        });
+      } catch (e) {
+        resultsBox.innerHTML = `<div class="p-2.5 text-xs text-rose-500">Search unavailable offline.</div>`;
+      }
+    }
+
     function setupEventListeners() {
+      // Mobile Drawer Controls (Click + Touch support)
+      const mobileBtn = document.getElementById('mobile-menu-btn');
+      const closeBtn = document.getElementById('close-sidebar-btn');
+      const backdrop = document.getElementById('sidebar-backdrop');
+
+      if (mobileBtn) {
+        mobileBtn.addEventListener('click', openMobileSidebar);
+        mobileBtn.addEventListener('touchend', openMobileSidebar, { passive: false });
+      }
+      if (closeBtn) closeBtn.addEventListener('click', closeMobileSidebar);
+      if (backdrop) backdrop.addEventListener('click', closeMobileSidebar);
+
+      // Modal Controls
+      document.getElementById('open-add-city-btn').addEventListener('click', openModal);
+      document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+      document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
+      document.getElementById('geocode-search-btn').addEventListener('click', searchWorldCity);
+      document.getElementById('geocode-search-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          searchWorldCity();
+        }
+      });
+
       // Currency input listeners
       document.getElementById('base-currency-select').addEventListener('change', () => {
         const city = state.cities.find(c => c.id === state.activeCityId);
@@ -1619,16 +1763,6 @@
         selectCity('london');
         showToast('Dashboard reset to default cities.');
       });
-    }
-
-    function openMobileSidebar() {
-      document.getElementById('sidebar').classList.remove('-translate-x-full');
-      document.getElementById('sidebar-backdrop').classList.remove('hidden');
-    }
-
-    function closeMobileSidebar() {
-      document.getElementById('sidebar').classList.add('-translate-x-full');
-      document.getElementById('sidebar-backdrop').classList.add('hidden');
     }
 
     function showToast(msg) {
